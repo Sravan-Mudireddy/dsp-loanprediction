@@ -1,0 +1,130 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "loan_prediction_suit",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "max_value": 1000,
+        "min_value": 1000
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "cibil_score",
+          "dependents",
+          "loan_status",
+          "annual_income",
+          "education",
+          "loan_amount",
+          "loan_term",
+          "employment"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "loan_status",
+        "value_set": [
+          "Approved",
+          "Rejected"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "education",
+        "value_set": [
+          "Graduate",
+          "Not Graduate"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "employment",
+        "value_set": [
+          "Yes",
+          "No"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "cibil_score",
+        "max_value": 900,
+        "min_value": 300
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "dependents"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "loan_amount",
+        "max_value": 100000000,
+        "min_value": 0
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "education"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "cibil_score",
+        "regex": "^\\d+$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "loan_status"
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "citations": [
+      {
+        "citation_date": "2024-11-05T17:35:26.678734Z",
+        "comment": "Created by effective Rule-Based Profiler of OnboardingDataAssistant with the configuration included.\n"
+      },
+      {
+        "batch_request": {
+          "data_asset_name": "split_file_001.csv",
+          "data_connector_name": "default_inferred_data_connector_name",
+          "datasource_name": "my_datasource",
+          "limit": 1000
+        },
+        "citation_date": "2024-11-05T21:46:06.783486Z",
+        "comment": "Created suite added via CLI"
+      }
+    ],
+    "great_expectations_version": "0.18.19"
+  }
+}
