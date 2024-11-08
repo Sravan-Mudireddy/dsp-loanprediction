@@ -60,7 +60,7 @@ def insert_data(data: LoanPrediction, prediction, source):
 async def predict(data: Union[LoanPrediction, MultiPrediction]):
     if isinstance(data, MultiPrediction):
         # Multi-prediction case
-        data_dicts = [item.dict() for item in data.input]
+        data_dicts = [item.model_dump() for item in data.input]  # Replaced .dict() with .model_dump()
         df = pd.DataFrame(data_dicts)
         output = preprocess_and_predict(df)
         for i in range(len(data.input)):
@@ -69,7 +69,7 @@ async def predict(data: Union[LoanPrediction, MultiPrediction]):
 
     else:
         # Single prediction case
-        df = pd.DataFrame([data.dict()])
+        df = pd.DataFrame([data.model_dump()])  
         prediction = preprocess_and_predict(df)
         insert_data(data, prediction[0], 'webapp')
         return {'output': prediction[0]}
@@ -82,7 +82,37 @@ def retrieve_predictions(start_date: date, end_date: date, source: str):
             Loan.created_date <= end_date
         )
     )
-    if source and source.lower() != "all":
-        query = query.filter(Loan.source == source.lower())
+    
+    
+    if source.lower() == "webapp":
+        query = query.filter(Loan.source == "webapp")
+    elif source.lower() == "scheduled":
+        query = query.filter(Loan.source == "scheduled")
+    elif source.lower() == "all":
+        
+        pass
+    else:
+        return {"error": "Invalid source specified. Please use 'webapp', 'scheduled', or 'all'."}
+
     results = query.all()
-    return results
+    
+    
+    response = [
+        {
+            "id": loan.id,
+            "created_date": loan.created_date,
+            "created_time": loan.created_time,
+            "source": loan.source,
+            "dependants": loan.dependants,
+            "education": loan.education,
+            "employment": loan.employment,
+            "annual_income": loan.annual_income,
+            "loan_amount": loan.loan_amount,
+            "loan_term": loan.loan_term,
+            "cibil_score": loan.cibil_score,
+            "result": loan.result
+        }
+        for loan in results
+    ]
+    
+    return response
