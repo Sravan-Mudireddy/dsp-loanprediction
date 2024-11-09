@@ -1,7 +1,3 @@
-Here's a complete `README.md` file for your **Loan Approval Prediction Web Application and Monitoring System**, following the structure and content style of the provided example.
-
----
-
 # Loan Approval Prediction Web Application and Monitoring System
 
 This repository contains the source code, Airflow DAGs, and documentation for a comprehensive **Loan Approval Prediction Web Application and Monitoring System**. The system enables loan approval predictions, visualizes past predictions, serves predictions via an API, automates data ingestion with quality checks, schedules predictions, and monitors data and model performance using Grafana dashboards.
