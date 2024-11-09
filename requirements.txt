@@ -1,0 +1,24 @@
+streamlit == 1.37.0
+fastapi == 0.112.0
+uvicorn == 0.30.6
+pandas == 2.2.2
+numpy == 2.0.0
+psycopg2 == 2.9.9
+SQLAlchemy == 2.0.32
+scikit-learn == 1.5.1
+pydantic == 2.8.2
+databases == 0.7.0
+joblib == 1.4.2
+requests == 2.32.2
+jupyter == 1.0.0
+airflow == 2.10.3
+docker == 27.3.1
+Grafana == 11.3.0
+shuttle == 2.0.0
+scipy == 1.13.1
+matplotlib == 3.9.2
+pendulum == 2.1.2
+seaborn == 0.12.2
+great-expectations == 0.16.15
+logging
+
