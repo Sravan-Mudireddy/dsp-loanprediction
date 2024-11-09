@@ -4,8 +4,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date, Time
 from sqlalchemy.sql import func
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv 
+import os
 
-url = "postgresql+psycopg2://postgres:root@localhost:5432/LoanPrediction"
+url = os.getenv('DATABASE_URL')
+
 
 engine = create_engine(url)
 Base = declarative_base()
@@ -27,6 +30,8 @@ class Loan(Base):
     loan_term = Column(Integer)
     cibil_score = Column(Integer)
     result = Column(String)
+
+# Statistics
 
 
 Base.metadata.create_all(engine)
