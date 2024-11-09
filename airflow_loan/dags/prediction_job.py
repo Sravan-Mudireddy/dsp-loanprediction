@@ -1,63 +1,92 @@
-import logging
-import os
-import pendulum
-from airflow.decorators import dag, task
+from airflow import DAG
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.dummy import DummyOperator
 from airflow.utils.dates import days_ago
-import requests  # To send requests to the prediction model service
+from datetime import timedelta
+import pandas as pd
+import os
+import requests
 
-# Default arguments for the DAG
+# DAG configuration
 default_args = {
-    'owner': 'airflow',
-    'retries': 1,
-    'email_on_failure': False,
-    'email_on_retry': False,
+    "owner": "airflow",
+    "depends_on_past": False,
+    "email_on_failure": False,
+    "email_on_retry": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=1),
 }
 
-@dag(
-    dag_id='predict_dag',
-    description='A DAG to check for new data and make predictions',
-    schedule='*/2 * * * *',  # Every 2 minutes
-    start_date=pendulum.today('UTC').subtract(days=1),
-    max_active_runs=1,
-    default_args=default_args,
-    tags=['prediction'],
-)
-def prediction_dag():
+# Define the path to the good_data folder where ingested data files are stored
+GOOD_DATA_FOLDER = "/opt/airflow/data/good_data"
 
-    # Task 1: Check for new data in good_data folder
-    @task
-    def check_for_new_data() -> str:
-        good_data_folder = '/Users/macbookair/airflow/good_data/test'
-        files = [f for f in os.listdir(good_data_folder) if f.endswith('.csv')]
+# Define the FastAPI prediction service URL
+PREDICTION_API_URL = "http://fastapi:8000/prediction"
 
-        if not files:
-            logging.info("No new files found in the test folder.")
-            return ""  # If no new files, we return an empty string
-        
-        latest_file = max(files, key=lambda f: os.path.getctime(os.path.join(good_data_folder, f)))
-        file_path = os.path.join(good_data_folder, latest_file)
-        logging.info(f"Latest file found for prediction: {file_path}")
-        return file_path
+def check_for_new_data(**context):
+    processed_files = set(context.get("ti").xcom_pull(key="processed_files", default=[]))
+    new_files = []
 
-    # Task 2: Make predictions on new data
-    @task
-    def make_predictions(file_path: str):
-        if not file_path:
-            logging.warning("No file path provided. Skipping prediction.")
-            return
-        
-        # Simulate a request to the prediction API (replace with actual API endpoint)
-        prediction_url = "http://model_service/predict"  # Replace with actual URL
+    # Check for new CSV files in the good_data folder
+    for file_name in os.listdir(GOOD_DATA_FOLDER):
+        if file_name.endswith(".csv") and file_name not in processed_files:
+            new_files.append(file_name)
+
+    # Push new files to XCom and decide which task to follow
+    if new_files:
+        context["ti"].xcom_push(key="new_files", value=new_files)
+        return "make_predictions"
+    else:
+        return "end"
+
+def make_predictions(**context):
+    # Pull the new files from XCom
+    new_files = context["ti"].xcom_pull(key="new_files", task_ids="check_for_new_data")
+    predictions = []
+
+    # Loop through each new file to make predictions
+    for file_name in new_files:
+        file_path = os.path.join(GOOD_DATA_FOLDER, file_name)
         data = pd.read_csv(file_path)
-        response = requests.post(prediction_url, json=data.to_dict(orient='records'))
+        payload = {"input": data.to_dict(orient="records")}
+        
+        try:
+            response = requests.post(PREDICTION_API_URL, json=payload)
+            response.raise_for_status()  # Raise error if response is unsuccessful
+            predictions.extend(response.json().get("output", []))  # Assuming response contains predictions
+            print(f"Predictions for {file_name}: {predictions}")
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to get predictions for {file_name}: {e}")
+            predictions.append(None)
 
-        if response.status_code == 200:
-            logging.info(f"Predictions successful for {file_path}")
-        else:
-            logging.error(f"Prediction failed for {file_path}. Status code: {response.status_code}")
+    # Update processed files list in XCom
+    processed_files = context.get("ti").xcom_pull(key="processed_files", default=[])
+    processed_files.extend(new_files)
+    context["ti"].xcom_push(key="processed_files", value=processed_files)
+    return predictions
 
-    file_path = check_for_new_data()
-    make_predictions(file_path)
+# Define the DAG
+with DAG(
+    "prediction_dag",
+    default_args=default_args,
+    description="A DAG for automatic loan prediction",
+    schedule_interval="*/2 * * * *",
+    start_date=days_ago(1),
+    catchup=False,
+) as dag:
 
-# Instantiate the prediction DAG
-prediction_dag = prediction_dag()
+    check_for_new_data_task = BranchPythonOperator(
+        task_id="check_for_new_data",
+        python_callable=check_for_new_data,
+    )
+
+    make_predictions_task = PythonOperator(
+        task_id="make_predictions",
+        python_callable=make_predictions,
+    )
+
+    end_task = DummyOperator(task_id="end")
+
+    # Task dependencies
+    check_for_new_data_task >> make_predictions_task
+
